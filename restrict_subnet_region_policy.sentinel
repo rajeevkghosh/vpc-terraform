@@ -1,0 +1,30 @@
+# Imports mock data
+import "tfplan/v2" as tfplan
+
+# Get all gcp subnets from all modules
+gcp_subnets = filter tfplan.resource_changes as _, rc {
+    rc.type is "google_compute_subnetwork" and
+        (rc.change.actions contains "create" or rc.change.actions is ["update"])
+}
+
+
+# Allowed Regions
+allowed_regions = [
+    "us-central1",
+    "us-east1",
+    "us-east4",
+]
+
+
+# Rule to restrict Subnet Regions
+subnet_region_allowed = rule {
+    all gcp_subnets as _, subnet {
+        subnet.change.after.region in allowed_regions
+    }
+}
+
+# Main rule that requires other rules to be true
+main = rule {
+    subnet_region_allowed is true
+}
+
